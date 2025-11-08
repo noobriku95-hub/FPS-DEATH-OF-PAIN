@@ -301,7 +301,6 @@
             <button onclick="showJoinForm()" class="secondary">Rejoindre une Partie</button>
             <button onclick="playOffline()">Jouer Solo (IA)</button>
             <button onclick="quickJoin()" class="secondary">Game Rapide</button>
-
         </div>
 
         <div id="hosting-info" style="display:none;">
@@ -464,7 +463,7 @@
   document.getElementById("connection-status").textContent = "Connexion rapide...";
 
   peer = new Peer(QUICK_GAME_ID, {
-    host: "peerjs.com",  // utilise serveur PeerJS public par défaut
+    host: "peerjs.com",
     port: 443,
     path: '/',
     secure: true,
@@ -495,14 +494,13 @@
         sendToOpponent({ type: "username", username: myUsername });
       });
       conn.on("error", () => {
-        document.getElementById("connection-status").textContent =
-          "Connexion échouée. L'hôte n'est pas disponible.";
+        document.getElementById("connection-status").textContent = "Connexion échouée. L'hôte n'est pas disponible.";
       });
     }
   });
 
   peer.on("error", (err) => {
-    console.error(err);
+    console.error("PeerJS error:", err);
     document.getElementById("connection-status").textContent = "Erreur PeerJS : " + err;
   });
 };
