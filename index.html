@@ -351,6 +351,7 @@
         R - Recharger<br>
         1, 2, 3 - Changer d'arme</p>
         <p><strong>Sniper = One Shot Headshot!</strong></p>
+        <p id="record-message" style="color: #ffd700; margin-top: 15px;"></p>
         <p><em>Cliquez pour commencer</em></p>
     </div>
     
@@ -409,23 +410,22 @@
             myUsername = document.getElementById('username-input').value.trim() || 'Joueur';
             document.getElementById('mode-select').style.display = 'none';
             document.getElementById('hosting-info').style.display = 'block';
-            document.getElementById('connection-status').textContent = 'Creation...';
+            document.getElementById('connection-status').textContent = 'Creation de la partie...';
 
             let timeoutId = setTimeout(() => {
                 if (!myPlayerId) {
                     document.getElementById('connection-status').innerHTML = 
-                        '<span style="color: #ff6666;">Serveur indisponible. Jouez en Solo.</span>';
+                        '<span style="color: #ff6666;">Temps ecoule (10s). Serveur indisponible.<br>Jouez en Solo ou reessayez plus tard.</span>';
                     document.getElementById('waiting-status').textContent = '';
                 }
-            }, 8000);
+            }, 10000);
 
             peer = new Peer({
                 config: {
                     iceServers: [
-                        { urls: 'stun:stun.relay.metered.ca:80' },
-                        { urls: 'turn:a.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                        { urls: 'turn:a.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-                        { urls: 'stun:stun.l.google.com:19302' }
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
                     ]
                 }
             });
@@ -435,28 +435,43 @@
                 myPlayerId = id;
                 isHost = true;
                 document.getElementById('my-peer-id').textContent = id;
-                document.getElementById('connection-status').textContent = 'Pret !';
+                document.getElementById('connection-status').textContent = 'Partie creee avec succes !';
+                console.log('Mon ID:', id);
             });
 
             peer.on('connection', (connection) => {
                 conn = connection;
                 setupConnection(connection);
                 document.getElementById('waiting-status').textContent = 'Joueur connecte !';
+                document.getElementById('connection-status').textContent = 'Demarrage du jeu...';
                 
                 setTimeout(() => {
                     isMultiplayer = true;
                     document.getElementById('connection-modal').classList.add('hidden');
-                    document.getElementById('game-mode').textContent = 'Multijoueur';
+                    document.getElementById('game-mode').textContent = 'Multijoueur (Hote)';
                     document.getElementById('player-count').textContent = '2';
                     initGame();
                     sendToOpponent({ type: 'username', username: myUsername });
-                }, 500);
+                }, 1000);
             });
 
             peer.on('error', (err) => {
                 clearTimeout(timeoutId);
-                document.getElementById('connection-status').innerHTML = 
-                    '<span style="color: #ff6666;">Erreur. Jouez en Solo.</span>';
+                console.error('Erreur peer:', err);
+                
+                if (err.type === 'unavailable-id') {
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">ID deja utilise. Reessayez.</span>';
+                } else if (err.type === 'network') {
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Probleme de connexion Internet.<br>Verifiez votre reseau.</span>';
+                } else if (err.type === 'server-error') {
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Serveur indisponible.<br>Jouez en Solo a la place.</span>';
+                } else {
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Erreur: ' + err.type + '<br>Jouez en Solo.</span>';
+                }
                 document.getElementById('waiting-status').textContent = '';
             });
         };
@@ -467,32 +482,32 @@
             
             if (!remotePeerId) {
                 document.getElementById('connection-status').innerHTML = 
-                    '<span style="color: #ff6666;">Entrez un ID !</span>';
+                    '<span style="color: #ff6666;">Entrez un ID valide !</span>';
                 return;
             }
 
-            document.getElementById('connection-status').textContent = 'Connexion...';
+            document.getElementById('connection-status').textContent = 'Connexion en cours... (max 10s)';
 
             let timeoutId = setTimeout(() => {
                 if (!conn || !conn.open) {
                     document.getElementById('connection-status').innerHTML = 
-                        '<span style="color: #ff6666;">Temps ecoule. Verifiez l\'ID.</span>';
+                        '<span style="color: #ff6666;">Temps ecoule (10s).<br>Verifiez l\'ID ou reessayez.</span>';
                 }
-            }, 8000);
+            }, 10000);
 
             peer = new Peer({
                 config: {
                     iceServers: [
-                        { urls: 'stun:stun.relay.metered.ca:80' },
-                        { urls: 'turn:a.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                        { urls: 'turn:a.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-                        { urls: 'stun:stun.l.google.com:19302' }
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
                     ]
                 }
             });
 
             peer.on('open', (id) => {
                 myPlayerId = id;
+                console.log('Mon Peer ID:', id);
                 
                 conn = peer.connect(remotePeerId, {
                     reliable: true
@@ -506,27 +521,38 @@
                         isMultiplayer = true;
                         isHost = false;
                         document.getElementById('connection-modal').classList.add('hidden');
-                        document.getElementById('game-mode').textContent = 'Multijoueur';
+                        document.getElementById('game-mode').textContent = 'Multijoueur (Invite)';
                         document.getElementById('player-count').textContent = '2';
                         initGame();
                         sendToOpponent({ type: 'username', username: myUsername });
                     } else {
                         document.getElementById('connection-status').innerHTML = 
-                            '<span style="color: #ff6666;">Connexion impossible.</span>';
+                            '<span style="color: #ff6666;">Connexion impossible.<br>Verifiez l\'ID.</span>';
                     }
                 }, 3000);
             });
 
             peer.on('error', (err) => {
                 clearTimeout(timeoutId);
-                document.getElementById('connection-status').innerHTML = 
-                    '<span style="color: #ff6666;">Erreur.</span>';
+                console.error('Erreur peer:', err);
+                
+                if (err.type === 'peer-unavailable') {
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">ID introuvable. Verifiez l\'ID.</span>';
+                } else if (err.type === 'network') {
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Probleme de connexion.</span>';
+                } else {
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Erreur: ' + err.type + '</span>';
+                }
             });
         };
 
         function setupConnection(connection) {
             connection.on('open', () => {
-                console.log('Connecte!');
+                console.log('Connexion etablie!');
+                document.getElementById('connection-status').textContent = 'Connecte!';
             });
 
             connection.on('data', (data) => {
@@ -534,10 +560,15 @@
             });
 
             connection.on('close', () => {
+                console.log('Connexion fermee');
                 if (isMultiplayer) {
-                    alert('Adversaire deconnecte!');
+                    alert('L\'autre joueur s\'est deconnecte!');
                     location.reload();
                 }
+            });
+
+            connection.on('error', (err) => {
+                console.error('Erreur de connexion:', err);
             });
         }
 
@@ -546,7 +577,7 @@
                 try {
                     conn.send(data);
                 } catch (e) {
-                    console.error('Erreur:', e);
+                    console.error('Erreur d\'envoi:', e);
                 }
             }
         }
@@ -577,6 +608,7 @@
                     break;
 
                 case 'shoot':
+                    playSound('enemyShoot');
                     createOtherPlayerBullet(data);
                     break;
 
@@ -757,7 +789,12 @@
 
         let lastShotTime = 0;
         let lastEmit = 0;
+
+        let audioListener;
         let audioEnabled = true;
+        let audioContext;
+        let backgroundMusicSource = null;
+        let lastFootstep = 0;
 
         const PLAYER_HEIGHT = 10;
         const BEST_SCORE_KEY = 'fps3d_best_score';
@@ -773,6 +810,10 @@
 
             camera = new THREE.PerspectiveCamera(BASE_FOV, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.y = PLAYER_HEIGHT;
+
+            audioListener = new THREE.AudioListener();
+            camera.add(audioListener);
+            audioContext = audioListener.context;
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
@@ -806,6 +847,9 @@
 
             controls.addEventListener('lock', () => {
                 instructions.classList.add('hidden');
+                if (audioEnabled && !backgroundMusicSource) {
+                    playBackgroundMusic();
+                }
             });
 
             controls.addEventListener('unlock', () => {
@@ -819,6 +863,7 @@
             document.addEventListener('mousedown', onMouseDown);
             document.addEventListener('mouseup', onMouseUp);
             document.addEventListener('contextmenu', (e) => e.preventDefault());
+            document.getElementById('audio-toggle').addEventListener('click', toggleAudio);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setPixelRatio(window.devicePixelRatio);
@@ -860,6 +905,11 @@
             if (saved !== null) {
                 bestScore = parseInt(saved);
                 document.getElementById('best-score').textContent = bestScore;
+                
+                if (bestScore > 0) {
+                    document.getElementById('record-message').textContent = 
+                        `Record a battre: ${bestScore} points!`;
+                }
             }
         }
 
@@ -899,9 +949,138 @@
             weapon.children[0].material.color.setHex(currentWeapon.color);
             
             updateWeaponUI();
+            playSound('reload');
             
             if (isMultiplayer) {
                 sendToOpponent({ type: 'weapon', weapon: currentWeaponIndex });
+            }
+        }
+
+        function playBackgroundMusic() {
+            if (!audioEnabled || !audioContext) return;
+            
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = 220;
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            gain.gain.value = 0.05;
+            osc.start();
+            backgroundMusicSource = osc;
+        }
+
+        function playSound(type) {
+            if (!audioEnabled || !audioContext) return;
+
+            try {
+                if (type === 'shoot') {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    const freq = currentWeaponIndex === 1 ? 400 : (currentWeaponIndex === 2 ? 1000 : 800);
+                    osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.1);
+                } else if (type === 'reload') {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(300, audioContext.currentTime);
+                    osc.frequency.linearRampToValueAtTime(600, audioContext.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.3);
+                } else if (type === 'hit') {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, audioContext.currentTime);
+                    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.15);
+                } else if (type === 'damage') {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, audioContext.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.4, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.2);
+                } else if (type === 'enemyShoot') {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, audioContext.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.12);
+                } else if (type === 'footstep') {
+                    const bufferSize = audioContext.sampleRate * 0.1;
+                    const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    const noise = audioContext.createBufferSource();
+                    noise.buffer = buffer;
+                    const filter = audioContext.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 300;
+                    const gain = audioContext.createGain();
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioContext.destination);
+                    gain.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    noise.start(audioContext.currentTime);
+                    noise.stop(audioContext.currentTime + 0.1);
+                } else if (type === 'bulletImpact') {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(200, audioContext.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.25, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.08);
+                }
+            } catch(e) {
+                console.log('Audio error:', e);
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('audio-toggle');
+            btn.textContent = audioEnabled ? 'Son: ON' : 'Son: OFF';
+            
+            if (!audioEnabled && backgroundMusicSource) {
+                backgroundMusicSource.stop();
+                backgroundMusicSource = null;
+            } else if (audioEnabled && controls.isLocked && !backgroundMusicSource) {
+                playBackgroundMusic();
             }
         }
 
@@ -1066,10 +1245,42 @@
             const wallIntersects = bulletRaycaster.intersectObjects(collidableObjects);
             
             if (wallIntersects.length > 0 && wallIntersects[0].distance < moveDistance + 1) {
+                createImpactEffect(wallIntersects[0].point);
+                playSound('bulletImpact');
                 return true;
             }
 
             return false;
+        }
+
+        function createImpactEffect(position) {
+            const impact = new THREE.Mesh(
+                new THREE.SphereGeometry(0.5, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.8 })
+            );
+            impact.position.copy(position);
+            scene.add(impact);
+
+            let startTime = Date.now();
+            const duration = 400;
+            
+            function animateImpact() {
+                const elapsed = Date.now() - startTime;
+                const progress = elapsed / duration;
+                
+                if (progress >= 1) {
+                    scene.remove(impact);
+                    impact.geometry.dispose();
+                    impact.material.dispose();
+                    return;
+                }
+                
+                impact.material.opacity = 0.8 * (1 - progress);
+                impact.scale.setScalar(1 + progress * 2);
+                requestAnimationFrame(animateImpact);
+            }
+            
+            animateImpact();
         }
 
         function onKeyDown(event) {
@@ -1214,6 +1425,7 @@
             currentWeapon.ammo--;
             updateWeaponUI();
 
+            playSound('shoot');
             weaponRecoil = isAiming ? 0.05 : 0.1;
 
             const flash = new THREE.PointLight(0xffff00, 2, 10);
@@ -1276,6 +1488,7 @@
             
             if (!isReloading && currentWeapon.ammo < currentWeapon.maxAmmo && currentWeapon.reserve > 0) {
                 isReloading = true;
+                playSound('reload');
                 
                 setTimeout(() => {
                     const neededAmmo = currentWeapon.maxAmmo - currentWeapon.ammo;
@@ -1294,6 +1507,8 @@
             const now = Date.now();
             if (now - enemy.lastShot < 2000) return;
             enemy.lastShot = now;
+
+            playSound('enemyShoot');
 
             const bullet = new THREE.Mesh(
                 new THREE.SphereGeometry(0.3, 8, 8),
@@ -1411,6 +1626,7 @@
                                     }
                                     
                                     enemy.health -= damage;
+                                    playSound('hit');
                                     showDamageNumber(damage, partWorldPos, isHeadshot, isCritical);
                                     
                                     part.material.color.setHex(0xffffff);
@@ -1465,6 +1681,7 @@
                                     }
                                 }
                                 
+                                playSound('hit');
                                 showDamageNumber(damage, partWorldPos, isHeadshot);
                                 
                                 sendToOpponent({
@@ -1530,6 +1747,8 @@
             health -= amount;
             if (health < 0) health = 0;
             
+            playSound('damage');
+            
             const healthFill = document.getElementById('health-fill');
             healthFill.style.width = health + '%';
 
@@ -1573,6 +1792,11 @@
             }
             
             document.getElementById('game-over').style.display = 'block';
+            
+            if (backgroundMusicSource) {
+                backgroundMusicSource.stop();
+                backgroundMusicSource = null;
+            }
         }
 
         function updateWeaponAnimation(delta) {
@@ -1580,6 +1804,12 @@
                 weaponBob += delta * 10;
                 weapon.position.y = -0.3 + Math.sin(weaponBob) * 0.02;
                 weapon.position.x = 0.3 + Math.cos(weaponBob * 0.5) * 0.01;
+                
+                const now = Date.now();
+                if (now - lastFootstep > 500) {
+                    playSound('footstep');
+                    lastFootstep = now;
+                }
             }
 
             if (weaponRecoil > 0) {
