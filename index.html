@@ -82,19 +82,6 @@
             width: 8vh;
             height: 8vh;
         }
-        .scope-tick {
-            position: absolute;
-            background: black;
-            box-shadow: 0 0 1px rgba(255,255,255,0.5);
-        }
-        .scope-tick-h {
-            height: 2px;
-            width: 20px;
-        }
-        .scope-tick-v {
-            width: 2px;
-            height: 20px;
-        }
         #hud {
             position: absolute;
             top: 20px;
@@ -305,21 +292,21 @@
 </head>
 <body>
     <div id="connection-modal">
-        <h2>🎮 FPS DEATH OF PAIN</h2>
+        <h2>FPS DEATH OF PAIN</h2>
         <input type="text" id="username-input" placeholder="Entre ton pseudo..." maxlength="12" value="Joueur">
         <p style="font-size: 14px; color: #aaa;">Mode Multijoueur P2P</p>
         
         <div id="mode-select">
-            <button onclick="startHosting()">🏠 Héberger une Partie</button>
-            <button onclick="showJoinForm()" class="secondary">🔗 Rejoindre une Partie</button>
-            <button onclick="playOffline()">🎯 Jouer Solo (IA)</button>
+            <button onclick="startHosting()">Heberger une Partie</button>
+            <button onclick="showJoinForm()" class="secondary">Rejoindre une Partie</button>
+            <button onclick="playOffline()">Jouer Solo (IA)</button>
         </div>
 
         <div id="hosting-info" style="display:none;">
             <h3>Votre ID de Partie:</h3>
             <div id="my-peer-id">Connexion...</div>
             <p style="font-size: 14px; color: #aaa;">Partagez cet ID avec votre ami!</p>
-            <p id="waiting-status" style="color: #ffaa00;">⏳ En attente d'un joueur...</p>
+            <p id="waiting-status" style="color: #ffaa00;">En attente d'un joueur...</p>
         </div>
 
         <div id="join-form" style="display:none;">
@@ -337,20 +324,6 @@
     <div id="sniper-scope">
         <div class="scope-circle scope-circle-outer"></div>
         <div class="scope-circle scope-circle-inner"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; left: calc(50% - 100px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; left: calc(50% - 80px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; left: calc(50% - 60px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; left: calc(50% - 40px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; left: calc(50% - 20px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 100px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 80px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 60px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 40px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 20px); transform: translateY(-50%);"></div>
-        <div class="scope-tick scope-tick-v" style="left: 50%; top: calc(50% + 20px); transform: translateX(-50%);"></div>
-        <div class="scope-tick scope-tick-v" style="left: 50%; top: calc(50% + 40px); transform: translateX(-50%);"></div>
-        <div class="scope-tick scope-tick-v" style="left: 50%; top: calc(50% + 60px); transform: translateX(-50%);"></div>
-        <div class="scope-tick scope-tick-v" style="left: 50%; top: calc(50% + 80px); transform: translateX(-50%);"></div>
     </div>
     
     <div id="hud">
@@ -358,19 +331,19 @@
         <div>Munitions: <span id="ammo">30</span> / <span id="reserve">90</span></div>
         <div>Score: <span id="score">0</span></div>
         <div>Ennemis: <span id="enemies">5</span></div>
-        <div id="best-score-display">🏆 Record: <span id="best-score">0</span></div>
-        <div id="multiplayer-info">⚡ Mode: <span id="game-mode">Solo</span> | Joueurs: <span id="player-count">1</span></div>
+        <div id="best-score-display">Record: <span id="best-score">0</span></div>
+        <div id="multiplayer-info">Mode: <span id="game-mode">Solo</span> | Joueurs: <span id="player-count">1</span></div>
     </div>
     
     <div id="health-bar">
         <div id="health-fill"></div>
     </div>
     
-    <button id="audio-toggle">🔊 Son: ON</button>
+    <button id="audio-toggle">Son: ON</button>
     
     <div id="instructions">
         <h2>FPS DEATH OF PAIN</h2>
-        <p>ZQSD ou WASD - Déplacement<br>
+        <p>ZQSD ou WASD - Deplacement<br>
         Souris - Regarder<br>
         Clic gauche - Tirer<br>
         Clic droit - Viser<br>
@@ -437,7 +410,15 @@
             myUsername = document.getElementById('username-input').value.trim() || 'Joueur';
             document.getElementById('mode-select').style.display = 'none';
             document.getElementById('hosting-info').style.display = 'block';
-            document.getElementById('connection-status').textContent = '🔄 Création...';
+            document.getElementById('connection-status').textContent = 'Creation de la partie...';
+
+            let timeoutId = setTimeout(() => {
+                if (!myPlayerId) {
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Temps ecoule (10s). Serveur indisponible.<br>Jouez en Solo ou reessayez plus tard.</span>';
+                    document.getElementById('waiting-status').textContent = '';
+                }
+            }, 10000);
 
             peer = new Peer({
                 config: {
@@ -450,23 +431,24 @@
             });
 
             peer.on('open', (id) => {
+                clearTimeout(timeoutId);
                 myPlayerId = id;
                 isHost = true;
                 document.getElementById('my-peer-id').textContent = id;
-                document.getElementById('connection-status').textContent = '✅ Partie créée!';
+                document.getElementById('connection-status').textContent = 'Partie creee avec succes !';
                 console.log('Mon ID:', id);
             });
 
             peer.on('connection', (connection) => {
                 conn = connection;
                 setupConnection(connection);
-                document.getElementById('waiting-status').textContent = '✅ Joueur connecté!';
-                document.getElementById('connection-status').textContent = '🎮 Démarrage...';
+                document.getElementById('waiting-status').textContent = 'Joueur connecte !';
+                document.getElementById('connection-status').textContent = 'Demarrage du jeu...';
                 
                 setTimeout(() => {
                     isMultiplayer = true;
                     document.getElementById('connection-modal').classList.add('hidden');
-                    document.getElementById('game-mode').textContent = 'Multijoueur (Hôte)';
+                    document.getElementById('game-mode').textContent = 'Multijoueur (Hote)';
                     document.getElementById('player-count').textContent = '2';
                     initGame();
                     sendToOpponent({ type: 'username', username: myUsername });
@@ -474,16 +456,23 @@
             });
 
             peer.on('error', (err) => {
+                clearTimeout(timeoutId);
                 console.error('Erreur peer:', err);
+                
                 if (err.type === 'unavailable-id') {
-                    document.getElementById('connection-status').textContent = '❌ ID déjà pris. Réessayez.';
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">ID deja utilise. Reessayez.</span>';
                 } else if (err.type === 'network') {
-                    document.getElementById('connection-status').textContent = '❌ Problème réseau. Vérifiez votre connexion.';
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Probleme de connexion Internet.<br>Verifiez votre reseau.</span>';
                 } else if (err.type === 'server-error') {
-                    document.getElementById('connection-status').textContent = '❌ Serveur indisponible. Jouez en Solo.';
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Serveur indisponible.<br>Jouez en Solo a la place.</span>';
                 } else {
-                    document.getElementById('connection-status').textContent = '❌ Erreur: ' + err.type;
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Erreur: ' + err.type + '<br>Jouez en Solo.</span>';
                 }
+                document.getElementById('waiting-status').textContent = '';
             });
         };
 
@@ -492,11 +481,19 @@
             const remotePeerId = document.getElementById('peer-id-input').value.trim();
             
             if (!remotePeerId) {
-                document.getElementById('connection-status').textContent = '❌ Entrez un ID!';
+                document.getElementById('connection-status').innerHTML = 
+                    '<span style="color: #ff6666;">Entrez un ID valide !</span>';
                 return;
             }
 
-            document.getElementById('connection-status').textContent = '🔄 Connexion...';
+            document.getElementById('connection-status').textContent = 'Connexion en cours... (max 10s)';
+
+            let timeoutId = setTimeout(() => {
+                if (!conn || !conn.open) {
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Temps ecoule (10s).<br>Verifiez l\'ID ou reessayez.</span>';
+                }
+            }, 10000);
 
             peer = new Peer({
                 config: {
@@ -519,37 +516,43 @@
                 setupConnection(conn);
                 
                 setTimeout(() => {
+                    clearTimeout(timeoutId);
                     if (conn && conn.open) {
                         isMultiplayer = true;
                         isHost = false;
                         document.getElementById('connection-modal').classList.add('hidden');
-                        document.getElementById('game-mode').textContent = 'Multijoueur (Invité)';
+                        document.getElementById('game-mode').textContent = 'Multijoueur (Invite)';
                         document.getElementById('player-count').textContent = '2';
                         initGame();
                         sendToOpponent({ type: 'username', username: myUsername });
                     } else {
-                        document.getElementById('connection-status').textContent = 
-                            '❌ Impossible de se connecter. Vérifiez l\'ID!';
+                        document.getElementById('connection-status').innerHTML = 
+                            '<span style="color: #ff6666;">Connexion impossible.<br>Verifiez l\'ID.</span>';
                     }
                 }, 3000);
             });
 
             peer.on('error', (err) => {
+                clearTimeout(timeoutId);
                 console.error('Erreur peer:', err);
+                
                 if (err.type === 'peer-unavailable') {
-                    document.getElementById('connection-status').textContent = '❌ ID introuvable. Vérifiez l\'ID.';
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">ID introuvable. Verifiez l\'ID.</span>';
                 } else if (err.type === 'network') {
-                    document.getElementById('connection-status').textContent = '❌ Problème réseau.';
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Probleme de connexion.</span>';
                 } else {
-                    document.getElementById('connection-status').textContent = '❌ Erreur: ' + err.type;
+                    document.getElementById('connection-status').innerHTML = 
+                        '<span style="color: #ff6666;">Erreur: ' + err.type + '</span>';
                 }
             });
         };
 
         function setupConnection(connection) {
             connection.on('open', () => {
-                console.log('✅ Connexion établie!');
-                document.getElementById('connection-status').textContent = '✅ Connecté!';
+                console.log('Connexion etablie!');
+                document.getElementById('connection-status').textContent = 'Connecte!';
             });
 
             connection.on('data', (data) => {
@@ -557,9 +560,9 @@
             });
 
             connection.on('close', () => {
-                console.log('❌ Connexion fermée');
+                console.log('Connexion fermee');
                 if (isMultiplayer) {
-                    alert('L\'autre joueur s\'est déconnecté!');
+                    alert('L\'autre joueur s\'est deconnecte!');
                     location.reload();
                 }
             });
@@ -757,7 +760,7 @@
                 color: 0x333333
             },
             {
-                name: 'Fusil à Pompe',
+                name: 'Fusil a Pompe',
                 ammo: 8,
                 maxAmmo: 8,
                 reserve: 32,
@@ -884,7 +887,7 @@
             if (isCritical) damageEl.classList.add('critical');
             
             damageEl.textContent = Math.round(damage);
-            if (isHeadshot) damageEl.textContent = '💀 ' + damageEl.textContent;
+            if (isHeadshot) damageEl.textContent = 'HEAD ' + damageEl.textContent;
             if (isCritical) damageEl.textContent += ' CRITICAL!';
             
             damageEl.style.left = x + 'px';
@@ -905,7 +908,7 @@
                 
                 if (bestScore > 0) {
                     document.getElementById('record-message').textContent = 
-                        `Record à battre: ${bestScore} points!`;
+                        `Record a battre: ${bestScore} points!`;
                 }
             }
         }
@@ -1071,7 +1074,7 @@
         function toggleAudio() {
             audioEnabled = !audioEnabled;
             const btn = document.getElementById('audio-toggle');
-            btn.textContent = audioEnabled ? '🔊 Son: ON' : '🔇 Son: OFF';
+            btn.textContent = audioEnabled ? 'Son: ON' : 'Son: OFF';
             
             if (!audioEnabled && backgroundMusicSource) {
                 backgroundMusicSource.stop();
@@ -1487,8 +1490,6 @@
                 isReloading = true;
                 playSound('reload');
                 
-                animateReload();
-                
                 setTimeout(() => {
                     const neededAmmo = currentWeapon.maxAmmo - currentWeapon.ammo;
                     const ammoToReload = Math.min(neededAmmo, currentWeapon.reserve);
@@ -1500,127 +1501,6 @@
                     isReloading = false;
                 }, currentWeapon.reloadTime);
             }
-        }
-
-        function animateReload() {
-            const reloadDuration = weapons[currentWeaponIndex].reloadTime;
-            const startTime = Date.now();
-            
-            const originalPos = {
-                x: weapon.position.x,
-                y: weapon.position.y,
-                z: weapon.position.z
-            };
-            
-            const originalRot = {
-                x: weapon.rotation.x,
-                y: weapon.rotation.y,
-                z: weapon.rotation.z
-            };
-            
-            function animateReloadFrame() {
-                if (!isReloading) return;
-                
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / reloadDuration, 1);
-                
-                if (progress < 0.3) {
-                    const phase1 = progress / 0.3;
-                    weapon.position.y = originalPos.y - 0.4 * phase1;
-                    weapon.rotation.z = originalRot.z - 0.3 * phase1;
-                }
-                else if (progress < 0.5) {
-                    const phase2 = (progress - 0.3) / 0.2;
-                    weapon.position.y = originalPos.y - 0.4 - 0.2 * phase2;
-                    
-                    if (phase2 < 0.5 && !weapon.magazineDropped) {
-                        createFallingMagazine();
-                        weapon.magazineDropped = true;
-                    }
-                }
-                else if (progress < 0.8) {
-                    const phase3 = (progress - 0.5) / 0.3;
-                    weapon.position.y = originalPos.y - 0.6 + 0.4 * phase3;
-                }
-                else {
-                    const phase4 = (progress - 0.8) / 0.2;
-                    weapon.position.y = originalPos.y - 0.2 + 0.2 * phase4;
-                    weapon.rotation.z = originalRot.z - 0.3 + 0.3 * phase4;
-                }
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animateReloadFrame);
-                } else {
-                    weapon.position.set(originalPos.x, originalPos.y, originalPos.z);
-                    weapon.rotation.set(originalRot.x, originalRot.y, originalRot.z);
-                    weapon.magazineDropped = false;
-                }
-            }
-            
-            animateReloadFrame();
-        }
-
-        function createFallingMagazine() {
-            const magazineGeometry = new THREE.BoxGeometry(0.08, 0.15, 0.04);
-            const magazineMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x333333,
-                metalness: 0.7,
-                roughness: 0.3
-            });
-            const magazine = new THREE.Mesh(magazineGeometry, magazineMaterial);
-            
-            magazine.position.copy(camera.position);
-            magazine.position.y -= 0.5;
-            magazine.position.z -= 0.3;
-            
-            magazine.velocity = new THREE.Vector3(
-                (Math.random() - 0.5) * 2,
-                -5,
-                (Math.random() - 0.5) * 2
-            );
-            
-            magazine.rotationVelocity = {
-                x: (Math.random() - 0.5) * 5,
-                y: (Math.random() - 0.5) * 5,
-                z: (Math.random() - 0.5) * 5
-            };
-            
-            scene.add(magazine);
-            
-            const startTime = Date.now();
-            function animateMagazineFall() {
-                const elapsed = (Date.now() - startTime) / 1000;
-                
-                if (elapsed > 2) {
-                    scene.remove(magazine);
-                    magazine.geometry.dispose();
-                    magazine.material.dispose();
-                    return;
-                }
-                
-                const delta = 0.016;
-                
-                magazine.velocity.y -= 9.8 * delta;
-                
-                magazine.position.x += magazine.velocity.x * delta;
-                magazine.position.y += magazine.velocity.y * delta;
-                magazine.position.z += magazine.velocity.z * delta;
-                
-                magazine.rotation.x += magazine.rotationVelocity.x * delta;
-                magazine.rotation.y += magazine.rotationVelocity.y * delta;
-                magazine.rotation.z += magazine.rotationVelocity.z * delta;
-                
-                if (magazine.position.y < 0.5) {
-                    magazine.position.y = 0.5;
-                    magazine.velocity.y *= -0.4;
-                    magazine.velocity.x *= 0.8;
-                    magazine.velocity.z *= 0.8;
-                }
-                
-                requestAnimationFrame(animateMagazineFall);
-            }
-            
-            animateMagazineFall();
         }
 
         function enemyShoot(enemy) {
@@ -1892,7 +1772,7 @@
             
             if (isNewRecord && score > 0) {
                 const newRecordMsg = document.getElementById('new-record-message');
-                newRecordMsg.innerHTML = '<p class="new-record">🎉 NOUVEAU RECORD! 🎉</p>';
+                newRecordMsg.innerHTML = '<p class="new-record">NOUVEAU RECORD!</p>';
                 newRecordMsg.style.display = 'block';
                 
                 document.getElementById('best-score-message').textContent = 
