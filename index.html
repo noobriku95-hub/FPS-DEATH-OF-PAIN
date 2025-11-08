@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPS 3D - Multijoueur P2P</title>
+    <title>FPS DEATH OF PAIN - Multijoueur</title>
     <style>
         body {
             margin: 0;
@@ -198,6 +198,12 @@
             border-radius: 5px;
             box-sizing: border-box;
         }
+        #username-input {
+            border: 2px solid #ffaa00 !important;
+            font-size: 18px !important;
+            font-weight: bold;
+            text-align: center;
+        }
         #connection-modal button {
             padding: 15px 30px;
             font-size: 18px;
@@ -298,10 +304,10 @@
     </style>
 </head>
 <body>
-    <!-- Modal de connexion P2P -->
     <div id="connection-modal">
-        <h2>🎮 FPS Multijoueur P2P</h2>
-        <p style="font-size: 14px; color: #aaa;">Connexion directe sans serveur</p>
+        <h2>🎮 FPS DEATH OF PAIN</h2>
+        <input type="text" id="username-input" placeholder="Entre ton pseudo..." maxlength="12" value="Joueur">
+        <p style="font-size: 14px; color: #aaa;">Mode Multijoueur P2P</p>
         
         <div id="mode-select">
             <button onclick="startHosting()">🏠 Héberger une Partie</button>
@@ -336,18 +342,17 @@
         <div class="scope-tick scope-tick-h" style="top: 50%; left: calc(50% - 60px); transform: translateY(-50%);"></div>
         <div class="scope-tick scope-tick-h" style="top: 50%; left: calc(50% - 40px); transform: translateY(-50%);"></div>
         <div class="scope-tick scope-tick-h" style="top: 50%; left: calc(50% - 20px); transform: translateY(-50%);"></div>
-        
         <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 100px); transform: translateY(-50%);"></div>
         <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 80px); transform: translateY(-50%);"></div>
         <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 60px); transform: translateY(-50%);"></div>
         <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 40px); transform: translateY(-50%);"></div>
         <div class="scope-tick scope-tick-h" style="top: 50%; right: calc(50% - 20px); transform: translateY(-50%);"></div>
-        
         <div class="scope-tick scope-tick-v" style="left: 50%; top: calc(50% + 20px); transform: translateX(-50%);"></div>
         <div class="scope-tick scope-tick-v" style="left: 50%; top: calc(50% + 40px); transform: translateX(-50%);"></div>
         <div class="scope-tick scope-tick-v" style="left: 50%; top: calc(50% + 60px); transform: translateX(-50%);"></div>
         <div class="scope-tick scope-tick-v" style="left: 50%; top: calc(50% + 80px); transform: translateX(-50%);"></div>
     </div>
+    
     <div id="hud">
         <div id="weapon-name">Pistolet</div>
         <div>Munitions: <span id="ammo">30</span> / <span id="reserve">90</span></div>
@@ -356,12 +361,15 @@
         <div id="best-score-display">🏆 Record: <span id="best-score">0</span></div>
         <div id="multiplayer-info">⚡ Mode: <span id="game-mode">Solo</span> | Joueurs: <span id="player-count">1</span></div>
     </div>
+    
     <div id="health-bar">
         <div id="health-fill"></div>
     </div>
+    
     <button id="audio-toggle">🔊 Son: ON</button>
+    
     <div id="instructions">
-        <h2>FPS 3D - Combat</h2>
+        <h2>FPS DEATH OF PAIN</h2>
         <p>ZQSD ou WASD - Déplacement<br>
         Souris - Regarder<br>
         Clic gauche - Tirer<br>
@@ -373,6 +381,7 @@
         <p id="record-message" style="color: #ffd700; margin-top: 15px;"></p>
         <p><em>Cliquez pour commencer</em></p>
     </div>
+    
     <div id="game-over">
         <h2>GAME OVER</h2>
         <p style="font-size: 22px;">Score: <span id="final-score">0</span></p>
@@ -381,7 +390,6 @@
         <button onclick="location.reload()">Rejouer</button>
     </div>
 
-    <!-- PeerJS depuis CDN -->
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
 
     <script type="importmap">
@@ -397,15 +405,14 @@
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // ===== VARIABLES MULTIJOUEUR P2P =====
         let peer = null;
         let conn = null;
         let isMultiplayer = false;
         let isHost = false;
         const otherPlayers = {};
         let myPlayerId = null;
+        let myUsername = 'Joueur';
 
-        // ===== FONCTIONS MULTIJOUEUR =====
         window.showModeSelect = function() {
             document.getElementById('mode-select').style.display = 'block';
             document.getElementById('hosting-info').style.display = 'none';
@@ -419,6 +426,7 @@
         };
 
         window.playOffline = function() {
+            myUsername = document.getElementById('username-input').value.trim() || 'Joueur';
             isMultiplayer = false;
             document.getElementById('connection-modal').classList.add('hidden');
             document.getElementById('game-mode').textContent = 'Solo (IA)';
@@ -426,11 +434,11 @@
         };
 
         window.startHosting = function() {
+            myUsername = document.getElementById('username-input').value.trim() || 'Joueur';
             document.getElementById('mode-select').style.display = 'none';
             document.getElementById('hosting-info').style.display = 'block';
-            document.getElementById('connection-status').textContent = '🔄 Création de la partie...';
+            document.getElementById('connection-status').textContent = '🔄 Création...';
 
-            // Créer un peer avec un ID aléatoire
             peer = new Peer({
                 config: {
                     'iceServers': [
@@ -445,31 +453,30 @@
                 isHost = true;
                 document.getElementById('my-peer-id').textContent = id;
                 document.getElementById('connection-status').textContent = '✅ Partie créée!';
-                console.log('Peer ID:', id);
             });
 
             peer.on('connection', (connection) => {
                 conn = connection;
                 setupConnection(connection);
-                document.getElementById('waiting-status').textContent = '✅ Joueur connecté!';
-                document.getElementById('connection-status').textContent = '🎮 Démarrage...';
+                document.getElementById('waiting-status').textContent = '✅ Connecté!';
                 
                 setTimeout(() => {
                     isMultiplayer = true;
                     document.getElementById('connection-modal').classList.add('hidden');
-                    document.getElementById('game-mode').textContent = 'Multijoueur (Hôte)';
+                    document.getElementById('game-mode').textContent = 'Multijoueur';
                     document.getElementById('player-count').textContent = '2';
                     initGame();
+                    sendToOpponent({ type: 'username', username: myUsername });
                 }, 1000);
             });
 
             peer.on('error', (err) => {
-                console.error('Peer error:', err);
                 document.getElementById('connection-status').textContent = '❌ Erreur: ' + err.type;
             });
         };
 
         window.connectToPeer = function() {
+            myUsername = document.getElementById('username-input').value.trim() || 'Joueur';
             const remotePeerId = document.getElementById('peer-id-input').value.trim();
             
             if (!remotePeerId) {
@@ -490,12 +497,7 @@
 
             peer.on('open', (id) => {
                 myPlayerId = id;
-                console.log('Mon Peer ID:', id);
-                
-                conn = peer.connect(remotePeerId, {
-                    reliable: true
-                });
-                
+                conn = peer.connect(remotePeerId, { reliable: true });
                 setupConnection(conn);
                 
                 setTimeout(() => {
@@ -503,25 +505,23 @@
                         isMultiplayer = true;
                         isHost = false;
                         document.getElementById('connection-modal').classList.add('hidden');
-                        document.getElementById('game-mode').textContent = 'Multijoueur (Invité)';
+                        document.getElementById('game-mode').textContent = 'Multijoueur';
                         document.getElementById('player-count').textContent = '2';
                         initGame();
+                        sendToOpponent({ type: 'username', username: myUsername });
                     } else {
-                        document.getElementById('connection-status').textContent = 
-                            '❌ Impossible de se connecter. Vérifiez l\'ID!';
+                        document.getElementById('connection-status').textContent = '❌ Échec connexion!';
                     }
                 }, 2000);
             });
 
             peer.on('error', (err) => {
-                console.error('Peer error:', err);
                 document.getElementById('connection-status').textContent = '❌ Erreur: ' + err.type;
             });
         };
 
         function setupConnection(connection) {
             connection.on('open', () => {
-                console.log('✅ Connexion établie!');
                 document.getElementById('connection-status').textContent = '✅ Connecté!';
             });
 
@@ -530,15 +530,10 @@
             });
 
             connection.on('close', () => {
-                console.log('❌ Connexion fermée');
                 if (isMultiplayer) {
-                    alert('L\'autre joueur s\'est déconnecté!');
+                    alert('Adversaire déconnecté!');
                     location.reload();
                 }
-            });
-
-            connection.on('error', (err) => {
-                console.error('Connection error:', err);
             });
         }
 
@@ -547,7 +542,7 @@
                 try {
                     conn.send(data);
                 } catch (e) {
-                    console.error('Erreur d\'envoi:', e);
+                    console.error('Erreur envoi:', e);
                 }
             }
         }
@@ -556,12 +551,24 @@
             if (!data || !data.type) return;
 
             switch (data.type) {
+                case 'username':
+                    if (otherPlayers['opponent']) {
+                        updatePlayerName(otherPlayers['opponent'], data.username);
+                    }
+                    break;
+
                 case 'position':
                     if (otherPlayers['opponent']) {
                         otherPlayers['opponent'].targetPosition = new THREE.Vector3(data.x, data.y, data.z);
                         otherPlayers['opponent'].targetRotation = data.rotation;
                     } else {
-                        addOtherPlayer({ id: 'opponent', x: data.x, y: data.y, z: data.z });
+                        addOtherPlayer({ 
+                            id: 'opponent', 
+                            x: data.x, 
+                            y: data.y, 
+                            z: data.z,
+                            username: data.username || 'Adversaire'
+                        });
                     }
                     break;
 
@@ -578,8 +585,8 @@
 
                 case 'weapon':
                     if (otherPlayers['opponent']) {
-                        const colors = [0x0000ff, 0x8B4513, 0x1a1a1a];
-                        otherPlayers['opponent'].children[0].material.color.setHex(colors[data.weapon] || 0x0000ff);
+                        const colors = [0xff0000, 0x8B4513, 0x1a1a1a];
+                        otherPlayers['opponent'].children[0].material.color.setHex(colors[data.weapon] || 0xff0000);
                     }
                     break;
             }
@@ -589,28 +596,76 @@
             const playerGroup = new THREE.Group();
             
             const body = new THREE.Mesh(
-                new THREE.BoxGeometry(2, 8, 2),
-                new THREE.MeshStandardMaterial({ color: 0x0000ff })
+                new THREE.BoxGeometry(4, 8, 3),
+                new THREE.MeshStandardMaterial({ color: 0xff0000 })
             );
             body.position.y = 4;
+            body.castShadow = true;
             body.userData.hitbox = 'body';
             playerGroup.add(body);
             
             const head = new THREE.Mesh(
-                new THREE.BoxGeometry(2, 2, 2),
-                new THREE.MeshStandardMaterial({ color: 0x6666ff })
+                new THREE.BoxGeometry(3, 3, 3),
+                new THREE.MeshStandardMaterial({ color: 0xcc0000 })
             );
-            head.position.y = 9;
+            head.position.y = 10;
+            head.castShadow = true;
             head.userData.hitbox = 'head';
             playerGroup.add(head);
+
+            const enemyWeapon = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 0.5, 4),
+                new THREE.MeshStandardMaterial({ color: 0x333333 })
+            );
+            enemyWeapon.position.set(2.5, 5, 0);
+            enemyWeapon.castShadow = true;
+            playerGroup.add(enemyWeapon);
+            
+            const nameTag = createNameTag(playerInfo.username || 'Adversaire');
+            nameTag.position.y = 13;
+            playerGroup.add(nameTag);
             
             playerGroup.position.set(playerInfo.x, playerInfo.y, playerInfo.z);
             playerGroup.targetPosition = new THREE.Vector3(playerInfo.x, playerInfo.y, playerInfo.z);
             playerGroup.targetRotation = 0;
             playerGroup.health = 100;
+            playerGroup.userData.isPlayer = true;
             
             scene.add(playerGroup);
             otherPlayers['opponent'] = playerGroup;
+        }
+
+        function createNameTag(text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, 512, 128);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 256, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(4, 1, 1);
+            return sprite;
+        }
+
+        function updatePlayerName(player, username) {
+            const oldNameTag = player.children.find(child => child.type === 'Sprite');
+            if (oldNameTag) {
+                player.remove(oldNameTag);
+            }
+            
+            const newNameTag = createNameTag(username);
+            newNameTag.position.y = 13;
+            player.add(newNameTag);
         }
 
         function createOtherPlayerBullet(data) {
@@ -628,7 +683,6 @@
             bullets.push(bullet);
         }
 
-        // ===== RESTE DU CODE (jeu complet) =====
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let canJump = false;
@@ -819,7 +873,7 @@
                 
                 if (bestScore > 0) {
                     document.getElementById('record-message').textContent = 
-                        `Votre record à battre: ${bestScore} points!`;
+                        `Record à battre: ${bestScore} points!`;
                 }
             }
         }
@@ -1115,6 +1169,7 @@
                 );
                 enemyGroup.changeDirectionTimer = Math.random() * 3000 + 2000;
                 enemyGroup.lastDirectionChange = Date.now();
+                enemyGroup.userData.isEnemy = true;
 
                 scene.add(enemyGroup);
                 enemies.push(enemyGroup);
@@ -1617,6 +1672,8 @@
 
         function updateBullets(delta) {
             for (let i = bullets.length - 1; i >= 0; i--) {
+                if (!bullets[i]) continue;
+
                 if (checkBulletCollision(bullets[i], delta)) {
                     scene.remove(bullets[i]);
                     bullets[i].geometry.dispose();
@@ -1627,105 +1684,116 @@
 
                 bullets[i].position.add(bullets[i].velocity.clone().multiplyScalar(delta));
                 
-                const bulletBox = new THREE.Box3().setFromObject(bullets[i]);
                 let hitTarget = false;
                 
-                if (!isMultiplayer) {
+                // Collision avec ennemis IA
+                if (!isMultiplayer && !bullets[i].isMultiplayerBullet) {
                     for (let j = enemies.length - 1; j >= 0; j--) {
-                        for (let part of enemies[j].children) {
-                            if (!part.geometry) continue;
+                        const enemy = enemies[j];
+                        const distToEnemy = bullets[i].position.distanceTo(enemy.position);
+                        
+                        if (distToEnemy < 5) {
+                            for (let part of enemy.children) {
+                                if (!part.geometry) continue;
+                                
+                                const partWorldPos = new THREE.Vector3();
+                                part.getWorldPosition(partWorldPos);
+                                const distToPart = bullets[i].position.distanceTo(partWorldPos);
+                                
+                                if (distToPart < 3) {
+                                    const isHeadshot = part.userData.hitbox === 'head';
+                                    let damage = bullets[i].damage;
+                                    let isCritical = false;
+                                    
+                                    if (isHeadshot) {
+                                        if (bullets[i].weaponType === 2 && SNIPER_HEADSHOT_KILL) {
+                                            damage = enemy.health;
+                                            isCritical = true;
+                                        } else {
+                                            damage *= HEADSHOT_MULTIPLIER;
+                                        }
+                                    }
+                                    
+                                    enemy.health -= damage;
+                                    playSound('hit');
+                                    showDamageNumber(damage, partWorldPos, isHeadshot, isCritical);
+                                    
+                                    part.material.color.setHex(0xffffff);
+                                    setTimeout(() => {
+                                        if (part && part.material) {
+                                            part.material.color.setHex(isHeadshot ? 0xcc0000 : 0xff0000);
+                                        }
+                                    }, 100);
+
+                                    if (enemy.health <= 0) {
+                                        scene.remove(enemy);
+                                        enemies.splice(j, 1);
+                                        updateScore(isHeadshot ? 200 : 100);
+                                        updateEnemyCount();
+
+                                        if (enemies.length < 3) {
+                                            setTimeout(() => createEnemies(), 3000);
+                                        }
+                                    }
+                                    
+                                    hitTarget = true;
+                                    break;
+                                }
+                            }
                             
-                            const partBox = new THREE.Box3().setFromObject(part);
+                            if (hitTarget) break;
+                        }
+                    }
+                }
+                
+                // Collision avec joueurs en multijoueur
+                if (isMultiplayer && otherPlayers['opponent'] && !bullets[i].isMultiplayerBullet) {
+                    const player = otherPlayers['opponent'];
+                    const distToPlayer = bullets[i].position.distanceTo(player.position);
+                    
+                    if (distToPlayer < 5) {
+                        for (let part of player.children) {
+                            if (!part.geometry || part.type === 'Sprite') continue;
                             
-                            if (bulletBox.intersectsBox(partBox)) {
+                            const partWorldPos = new THREE.Vector3();
+                            part.getWorldPosition(partWorldPos);
+                            const distToPart = bullets[i].position.distanceTo(partWorldPos);
+                            
+                            if (distToPart < 3) {
                                 const isHeadshot = part.userData.hitbox === 'head';
                                 let damage = bullets[i].damage;
-                                let isCritical = false;
                                 
                                 if (isHeadshot) {
                                     if (bullets[i].weaponType === 2 && SNIPER_HEADSHOT_KILL) {
-                                        damage = enemies[j].health;
-                                        isCritical = true;
+                                        damage = 100;
                                     } else {
                                         damage *= HEADSHOT_MULTIPLIER;
                                     }
                                 }
                                 
-                                enemies[j].health -= damage;
                                 playSound('hit');
+                                showDamageNumber(damage, partWorldPos, isHeadshot);
                                 
-                                showDamageNumber(damage, part.getWorldPosition(new THREE.Vector3()), isHeadshot, isCritical);
-                                
-                                part.material.color.setHex(0xffffff);
-                                setTimeout(() => {
-                                    if (part && part.material) {
-                                        part.material.color.setHex(isHeadshot ? 0xcc0000 : 0xff0000);
-                                    }
-                                }, 100);
-
-                                if (enemies[j].health <= 0) {
-                                    scene.remove(enemies[j]);
-                                    enemies.splice(j, 1);
-                                    updateScore(isHeadshot ? 200 : 100);
-                                    updateEnemyCount();
-
-                                    if (enemies.length < 3) {
-                                        setTimeout(() => createEnemies(), 3000);
-                                    }
-                                }
+                                sendToOpponent({
+                                    type: 'hit',
+                                    targetId: 'me',
+                                    damage: damage
+                                });
                                 
                                 hitTarget = true;
-                                scene.remove(bullets[i]);
-                                bullets[i].geometry.dispose();
-                                bullets[i].material.dispose();
-                                bullets.splice(i, 1);
                                 break;
                             }
                         }
-                        
-                        if (hitTarget) break;
                     }
                 }
                 
-                if (isMultiplayer && otherPlayers['opponent'] && !bullets[i].isMultiplayerBullet) {
-                    const otherPlayer = otherPlayers['opponent'];
-                    for (let part of otherPlayer.children) {
-                        if (!part.geometry) continue;
-                        
-                        const partBox = new THREE.Box3().setFromObject(part);
-                        
-                        if (bulletBox.intersectsBox(partBox)) {
-                            const isHeadshot = part.userData.hitbox === 'head';
-                            let damage = bullets[i].damage;
-                            
-                            if (isHeadshot) {
-                                if (bullets[i].weaponType === 2 && SNIPER_HEADSHOT_KILL) {
-                                    damage = 100;
-                                } else {
-                                    damage *= HEADSHOT_MULTIPLIER;
-                                }
-                            }
-                            
-                            playSound('hit');
-                            showDamageNumber(damage, part.getWorldPosition(new THREE.Vector3()), isHeadshot);
-                            
-                            sendToOpponent({
-                                type: 'hit',
-                                targetId: 'me',
-                                damage: damage
-                            });
-                            
-                            hitTarget = true;
-                            scene.remove(bullets[i]);
-                            bullets[i].geometry.dispose();
-                            bullets[i].material.dispose();
-                            bullets.splice(i, 1);
-                            break;
-                        }
-                    }
+                if (hitTarget) {
+                    scene.remove(bullets[i]);
+                    bullets[i].geometry.dispose();
+                    bullets[i].material.dispose();
+                    bullets.splice(i, 1);
+                    continue;
                 }
-                
-                if (hitTarget) continue;
                 
                 if (bullets[i] && bullets[i].position.length() > 500) {
                     scene.remove(bullets[i]);
@@ -1809,7 +1877,7 @@
                 if (score < bestScore) {
                     const diff = bestScore - score;
                     document.getElementById('best-score-message').innerHTML += 
-                        `<br><small style="color: #ffcccc;">Encore ${diff} points pour battre le record!</small>`;
+                        `<br><small style="color: #ffcccc;">Encore ${diff} points!</small>`;
                 }
             }
             
@@ -1892,7 +1960,8 @@
                         x: controls.object.position.x,
                         y: controls.object.position.y,
                         z: controls.object.position.z,
-                        rotation: controls.object.rotation.y
+                        rotation: controls.object.rotation.y,
+                        username: myUsername
                     });
                     lastEmit = Date.now();
                 }
@@ -1900,9 +1969,9 @@
                 if (otherPlayers['opponent']) {
                     const player = otherPlayers['opponent'];
                     if (player.targetPosition) {
-                        player.position.lerp(player.targetPosition, 0.1);
+                        player.position.lerp(player.targetPosition, 0.2);
                         if (player.targetRotation !== undefined) {
-                            player.rotation.y += (player.targetRotation - player.rotation.y) * 0.1;
+                            player.rotation.y += (player.targetRotation - player.rotation.y) * 0.2;
                         }
                     }
                 }
