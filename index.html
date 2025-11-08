@@ -592,20 +592,21 @@
                     }
                     break;
 
-                case 'position':
-                    if (otherPlayers['opponent']) {
-                        otherPlayers['opponent'].targetPosition = new THREE.Vector3(data.x, data.y, data.z);
-                        otherPlayers['opponent'].targetRotation = data.rotation;
-                    } else {
-                        addOtherPlayer({ 
-                            id: 'opponent', 
-                            x: data.x, 
-                            y: data.y, 
-                            z: data.z,
-                            username: data.username || 'Adversaire'
-                        });
-                    }
-                    break;
+             case 'position':
+     if (otherPlayers['opponent']) {
+           otherPlayers['opponent'].targetPosition = new THREE.Vector3(data.x, 0, data.z); // <--- ici
+           otherPlayers['opponent'].targetRotation = data.rotation;
+       } else {
+          addOtherPlayer({ 
+              id: 'opponent', 
+              x: data.x, 
+              y: 0, // <--- ici
+              z: data.z,
+               username: data.username || 'Adversaire'
+           });
+      }
+    break;
+
 
                 case 'shoot':
                     playSound('enemyShoot');
@@ -660,8 +661,9 @@
             nameTag.position.y = 13;
             playerGroup.add(nameTag);
             
-            playerGroup.position.set(playerInfo.x, playerInfo.y, playerInfo.z);
-            playerGroup.targetPosition = new THREE.Vector3(playerInfo.x, playerInfo.y, playerInfo.z);
+            playerGroup.position.set(playerInfo.x, 0, playerInfo.z);
+            playerGroup.targetPosition = new THREE.Vector3(playerInfo.x, 0, playerInfo.z);
+
             playerGroup.targetRotation = 0;
             playerGroup.health = 100;
             playerGroup.userData.isPlayer = true;
