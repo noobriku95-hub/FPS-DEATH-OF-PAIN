@@ -305,21 +305,21 @@
 </head>
 <body>
     <div id="connection-modal">
-        <h2>ðŸŽ® FPS DEATH OF PAIN</h2>
+        <h2>🎮 FPS DEATH OF PAIN</h2>
         <input type="text" id="username-input" placeholder="Entre ton pseudo..." maxlength="12" value="Joueur">
         <p style="font-size: 14px; color: #aaa;">Mode Multijoueur P2P</p>
         
         <div id="mode-select">
-            <button onclick="startHosting()">ðŸ  HÃ©berger une Partie</button>
-            <button onclick="showJoinForm()" class="secondary">ðŸ”— Rejoindre une Partie</button>
-            <button onclick="playOffline()">ðŸŽ¯ Jouer Solo (IA)</button>
+            <button onclick="startHosting()">🏠 Héberger une Partie</button>
+            <button onclick="showJoinForm()" class="secondary">🔗 Rejoindre une Partie</button>
+            <button onclick="playOffline()">🎯 Jouer Solo (IA)</button>
         </div>
 
         <div id="hosting-info" style="display:none;">
             <h3>Votre ID de Partie:</h3>
             <div id="my-peer-id">Connexion...</div>
             <p style="font-size: 14px; color: #aaa;">Partagez cet ID avec votre ami!</p>
-            <p id="waiting-status" style="color: #ffaa00;">â³ En attente d'un joueur...</p>
+            <p id="waiting-status" style="color: #ffaa00;">⏳ En attente d'un joueur...</p>
         </div>
 
         <div id="join-form" style="display:none;">
@@ -358,19 +358,19 @@
         <div>Munitions: <span id="ammo">30</span> / <span id="reserve">90</span></div>
         <div>Score: <span id="score">0</span></div>
         <div>Ennemis: <span id="enemies">5</span></div>
-        <div id="best-score-display">ðŸ† Record: <span id="best-score">0</span></div>
-        <div id="multiplayer-info">âš¡ Mode: <span id="game-mode">Solo</span> | Joueurs: <span id="player-count">1</span></div>
+        <div id="best-score-display">🏆 Record: <span id="best-score">0</span></div>
+        <div id="multiplayer-info">⚡ Mode: <span id="game-mode">Solo</span> | Joueurs: <span id="player-count">1</span></div>
     </div>
     
     <div id="health-bar">
         <div id="health-fill"></div>
     </div>
     
-    <button id="audio-toggle">ðŸ”Š Son: ON</button>
+    <button id="audio-toggle">🔊 Son: ON</button>
     
     <div id="instructions">
         <h2>FPS DEATH OF PAIN</h2>
-        <p>ZQSD ou WASD - DÃ©placement<br>
+        <p>ZQSD ou WASD - Déplacement<br>
         Souris - Regarder<br>
         Clic gauche - Tirer<br>
         Clic droit - Viser<br>
@@ -437,13 +437,14 @@
             myUsername = document.getElementById('username-input').value.trim() || 'Joueur';
             document.getElementById('mode-select').style.display = 'none';
             document.getElementById('hosting-info').style.display = 'block';
-            document.getElementById('connection-status').textContent = 'ðŸ”„ CrÃ©ation...';
+            document.getElementById('connection-status').textContent = '🔄 Création...';
 
             peer = new Peer({
                 config: {
-                    'iceServers': [
+                    iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
                     ]
                 }
             });
@@ -452,18 +453,20 @@
                 myPlayerId = id;
                 isHost = true;
                 document.getElementById('my-peer-id').textContent = id;
-                document.getElementById('connection-status').textContent = 'âœ… Partie crÃ©Ã©e!';
+                document.getElementById('connection-status').textContent = '✅ Partie créée!';
+                console.log('Mon ID:', id);
             });
 
             peer.on('connection', (connection) => {
                 conn = connection;
                 setupConnection(connection);
-                document.getElementById('waiting-status').textContent = 'âœ… ConnectÃ©!';
+                document.getElementById('waiting-status').textContent = '✅ Joueur connecté!';
+                document.getElementById('connection-status').textContent = '🎮 Démarrage...';
                 
                 setTimeout(() => {
                     isMultiplayer = true;
                     document.getElementById('connection-modal').classList.add('hidden');
-                    document.getElementById('game-mode').textContent = 'Multijoueur';
+                    document.getElementById('game-mode').textContent = 'Multijoueur (Hôte)';
                     document.getElementById('player-count').textContent = '2';
                     initGame();
                     sendToOpponent({ type: 'username', username: myUsername });
@@ -471,7 +474,16 @@
             });
 
             peer.on('error', (err) => {
-                document.getElementById('connection-status').textContent = 'âŒ Erreur: ' + err.type;
+                console.error('Erreur peer:', err);
+                if (err.type === 'unavailable-id') {
+                    document.getElementById('connection-status').textContent = '❌ ID déjà pris. Réessayez.';
+                } else if (err.type === 'network') {
+                    document.getElementById('connection-status').textContent = '❌ Problème réseau. Vérifiez votre connexion.';
+                } else if (err.type === 'server-error') {
+                    document.getElementById('connection-status').textContent = '❌ Serveur indisponible. Jouez en Solo.';
+                } else {
+                    document.getElementById('connection-status').textContent = '❌ Erreur: ' + err.type;
+                }
             });
         };
 
@@ -480,24 +492,30 @@
             const remotePeerId = document.getElementById('peer-id-input').value.trim();
             
             if (!remotePeerId) {
-                document.getElementById('connection-status').textContent = 'âŒ Entrez un ID!';
+                document.getElementById('connection-status').textContent = '❌ Entrez un ID!';
                 return;
             }
 
-            document.getElementById('connection-status').textContent = 'ðŸ”„ Connexion...';
+            document.getElementById('connection-status').textContent = '🔄 Connexion...';
 
             peer = new Peer({
                 config: {
-                    'iceServers': [
+                    iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
                     ]
                 }
             });
 
             peer.on('open', (id) => {
                 myPlayerId = id;
-                conn = peer.connect(remotePeerId, { reliable: true });
+                console.log('Mon Peer ID:', id);
+                
+                conn = peer.connect(remotePeerId, {
+                    reliable: true
+                });
+                
                 setupConnection(conn);
                 
                 setTimeout(() => {
@@ -505,24 +523,33 @@
                         isMultiplayer = true;
                         isHost = false;
                         document.getElementById('connection-modal').classList.add('hidden');
-                        document.getElementById('game-mode').textContent = 'Multijoueur';
+                        document.getElementById('game-mode').textContent = 'Multijoueur (Invité)';
                         document.getElementById('player-count').textContent = '2';
                         initGame();
                         sendToOpponent({ type: 'username', username: myUsername });
                     } else {
-                        document.getElementById('connection-status').textContent = 'âŒ Ã‰chec connexion!';
+                        document.getElementById('connection-status').textContent = 
+                            '❌ Impossible de se connecter. Vérifiez l\'ID!';
                     }
-                }, 2000);
+                }, 3000);
             });
 
             peer.on('error', (err) => {
-                document.getElementById('connection-status').textContent = 'âŒ Erreur: ' + err.type;
+                console.error('Erreur peer:', err);
+                if (err.type === 'peer-unavailable') {
+                    document.getElementById('connection-status').textContent = '❌ ID introuvable. Vérifiez l\'ID.';
+                } else if (err.type === 'network') {
+                    document.getElementById('connection-status').textContent = '❌ Problème réseau.';
+                } else {
+                    document.getElementById('connection-status').textContent = '❌ Erreur: ' + err.type;
+                }
             });
         };
 
         function setupConnection(connection) {
             connection.on('open', () => {
-                document.getElementById('connection-status').textContent = 'âœ… ConnectÃ©!';
+                console.log('✅ Connexion établie!');
+                document.getElementById('connection-status').textContent = '✅ Connecté!';
             });
 
             connection.on('data', (data) => {
@@ -530,10 +557,15 @@
             });
 
             connection.on('close', () => {
+                console.log('❌ Connexion fermée');
                 if (isMultiplayer) {
-                    alert('Adversaire dÃ©connectÃ©!');
+                    alert('L\'autre joueur s\'est déconnecté!');
                     location.reload();
                 }
+            });
+
+            connection.on('error', (err) => {
+                console.error('Erreur de connexion:', err);
             });
         }
 
@@ -542,7 +574,7 @@
                 try {
                     conn.send(data);
                 } catch (e) {
-                    console.error('Erreur envoi:', e);
+                    console.error('Erreur d\'envoi:', e);
                 }
             }
         }
@@ -725,7 +757,7 @@
                 color: 0x333333
             },
             {
-                name: 'Fusil Ã  Pompe',
+                name: 'Fusil à Pompe',
                 ammo: 8,
                 maxAmmo: 8,
                 reserve: 32,
@@ -852,7 +884,7 @@
             if (isCritical) damageEl.classList.add('critical');
             
             damageEl.textContent = Math.round(damage);
-            if (isHeadshot) damageEl.textContent = 'ðŸ’€ ' + damageEl.textContent;
+            if (isHeadshot) damageEl.textContent = '💀 ' + damageEl.textContent;
             if (isCritical) damageEl.textContent += ' CRITICAL!';
             
             damageEl.style.left = x + 'px';
@@ -873,7 +905,7 @@
                 
                 if (bestScore > 0) {
                     document.getElementById('record-message').textContent = 
-                        `Record Ã  battre: ${bestScore} points!`;
+                        `Record à battre: ${bestScore} points!`;
                 }
             }
         }
@@ -1039,7 +1071,7 @@
         function toggleAudio() {
             audioEnabled = !audioEnabled;
             const btn = document.getElementById('audio-toggle');
-            btn.textContent = audioEnabled ? 'ðŸ”Š Son: ON' : 'ðŸ”‡ Son: OFF';
+            btn.textContent = audioEnabled ? '🔊 Son: ON' : '🔇 Son: OFF';
             
             if (!audioEnabled && backgroundMusicSource) {
                 backgroundMusicSource.stop();
@@ -1686,7 +1718,6 @@
                 
                 let hitTarget = false;
                 
-                // Collision avec ennemis IA
                 if (!isMultiplayer && !bullets[i].isMultiplayerBullet) {
                     for (let j = enemies.length - 1; j >= 0; j--) {
                         const enemy = enemies[j];
@@ -1746,7 +1777,6 @@
                     }
                 }
                 
-                // Collision avec joueurs en multijoueur
                 if (isMultiplayer && otherPlayers['opponent'] && !bullets[i].isMultiplayerBullet) {
                     const player = otherPlayers['opponent'];
                     const distToPlayer = bullets[i].position.distanceTo(player.position);
@@ -1862,7 +1892,7 @@
             
             if (isNewRecord && score > 0) {
                 const newRecordMsg = document.getElementById('new-record-message');
-                newRecordMsg.innerHTML = '<p class="new-record">ðŸŽ‰ NOUVEAU RECORD! ðŸŽ‰</p>';
+                newRecordMsg.innerHTML = '<p class="new-record">🎉 NOUVEAU RECORD! 🎉</p>';
                 newRecordMsg.style.display = 'block';
                 
                 document.getElementById('best-score-message').textContent = 
