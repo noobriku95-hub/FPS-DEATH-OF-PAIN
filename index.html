@@ -506,13 +506,14 @@
             document.getElementById('hosting-info').style.display = 'block';
             document.getElementById('connection-status').textContent = 'Creation de la partie...';
 
-            let timeoutId = setTimeout(() => {
+           let timeoutId = setTimeout(() => {
                 if (!myPlayerId) {
-                    document.getElementById('connection-status').innerHTML = 
-                        '<span style="color: #ff6666;">Temps ecoule (10s). Serveur indisponible.<br>Jouez en Solo ou reessayez plus tard.</span>';
+                    document.getElementById('connection-status').innerHTML =
+                    '<span style="color: #ffaa00;">Aucun hôte trouvé.<br>Essayez de lancer une partie ou Jouer Solo.</span>';
                     document.getElementById('waiting-status').textContent = '';
                 }
-            }, 10000);
+                }, 10000);
+
 
             peer = new Peer({
                 config: {
