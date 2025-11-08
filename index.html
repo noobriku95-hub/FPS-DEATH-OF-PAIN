@@ -300,6 +300,8 @@
             <button onclick="startHosting()">Heberger une Partie</button>
             <button onclick="showJoinForm()" class="secondary">Rejoindre une Partie</button>
             <button onclick="playOffline()">Jouer Solo (IA)</button>
+            <button onclick="quickJoin()" class="secondary">Game Rapide</button>
+
         </div>
 
         <div id="hosting-info" style="display:none;">
@@ -405,6 +407,98 @@
             document.getElementById('game-mode').textContent = 'Solo (IA)';
             initGame();
         };
+        
+        window.quickJoin = function() {
+    myUsername = document.getElementById('username-input').value.trim() || 'Joueur';
+    document.getElementById('mode-select').style.display = 'none';
+    document.getElementById('connection-status').textContent = 'Recherche de partie rapide...';
+
+    const quickRoomId = "FPS_QUICK_ROOM";
+    let didConnect = false;
+    let quickPeer;
+
+    function setupPeerForJoin() {
+        quickPeer = new Peer({
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
+                ]
+            }
+        });
+
+        quickPeer.on('open', id => {
+            // Essaie de se connecter au "quick room"
+            let connCandidate = quickPeer.connect(quickRoomId, { reliable: true });
+            connCandidate.on('open', () => {
+                if (didConnect) return;
+                didConnect = true;
+                conn = connCandidate;
+                isMultiplayer = true;
+                isHost = false;
+                document.getElementById('connection-modal').classList.add('hidden');
+                document.getElementById('game-mode').textContent = 'Rapide (Invite)';
+                document.getElementById('player-count').textContent = '2';
+                initGame();
+                sendToOpponent({ type: 'username', username: myUsername });
+            });
+
+            // Après 2s, si personne, devient hôte
+            setTimeout(() => {
+                if (!didConnect) {
+                    setupPeerForHost();
+                }
+            }, 2000);
+        });
+
+        quickPeer.on('connection', incoming => {
+            if (didConnect) return;
+            didConnect = true;
+            conn = incoming;
+            setupConnection(conn);
+            isMultiplayer = true;
+            isHost = true;
+            document.getElementById('connection-modal').classList.add('hidden');
+            document.getElementById('game-mode').textContent = 'Rapide (Hote)';
+            document.getElementById('player-count').textContent = '2';
+            initGame();
+            sendToOpponent({ type: 'username', username: myUsername });
+        });
+    }
+
+    function setupPeerForHost() {
+        quickPeer = new Peer(quickRoomId, {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
+                ]
+            }
+        });
+
+        quickPeer.on('open', id => {
+            document.getElementById('connection-status').textContent = 'En attente d\'un joueur (rapide)...';
+        });
+
+        quickPeer.on('connection', incoming => {
+            if (didConnect) return;
+            didConnect = true;
+            conn = incoming;
+            setupConnection(conn);
+            isMultiplayer = true;
+            isHost = true;
+            document.getElementById('connection-modal').classList.add('hidden');
+            document.getElementById('game-mode').textContent = 'Rapide (Hote)';
+            document.getElementById('player-count').textContent = '2';
+            initGame();
+            sendToOpponent({ type: 'username', username: myUsername });
+        });
+    }
+
+    setupPeerForJoin();
+}
 
         window.startHosting = function() {
             myUsername = document.getElementById('username-input').value.trim() || 'Joueur';
