@@ -396,6 +396,7 @@
         window.showJoinForm = function() {
             document.getElementById('mode-select').style.display = 'none';
             document.getElementById('join-form').style.display = 'block';
+            isMultiplayer = true
         };
 
         window.playOffline = function() {
@@ -411,6 +412,7 @@
             document.getElementById('mode-select').style.display = 'none';
             document.getElementById('hosting-info').style.display = 'block';
             document.getElementById('connection-status').textContent = 'Creation de la partie...';
+            isMultiplayer = true
 
             let timeoutId = setTimeout(() => {
                 if (!myPlayerId) {
@@ -1287,43 +1289,52 @@
         }
 
         function onKeyDown(event) {
-            switch (event.code) {
-                case 'KeyW':
-                case 'KeyZ':
-                case 'ArrowUp':
-                    moveForward = true;
-                    break;
-                case 'KeyA':
-                case 'KeyQ':
-                case 'ArrowLeft':
-                    moveLeft = true;
-                    break;
-                case 'KeyS':
-                case 'ArrowDown':
-                    moveBackward = true;
-                    break;
-                case 'KeyD':
-                case 'ArrowRight':
-                    moveRight = true;
-                    break;
-                case 'Space':
-                    if (canJump === true) velocity.y += 150;
-                    canJump = false;
-                    break;
-                case 'KeyR':
-                    reload();
-                    break;
-                case 'Digit1':
-                    switchWeapon(0);
-                    break;
-                case 'Digit2':
-                    switchWeapon(1);
-                    break;
-                case 'Digit3':
-                    switchWeapon(2);
-                    break;
-            }
-        }
+  switch (event.code) {
+    case 'KeyW':
+    case 'KeyZ':
+    case 'ArrowUp':
+      moveForward = true;
+      break;
+    case 'KeyA':
+    case 'KeyQ':
+    case 'ArrowLeft':
+      moveLeft = true;
+      break;
+    case 'KeyS':
+    case 'ArrowDown':
+      moveBackward = true;
+      break;
+    case 'KeyD':
+    case 'ArrowRight':
+      moveRight = true;
+      break;
+    case 'Space':
+      if (canJump === true) {
+        velocity.y += 150;
+        canJump = false;
+      }
+      break;
+    case 'KeyR':
+      reload();
+      break;
+    case 'Digit1':
+      switchWeapon(0);
+      break;
+    case 'Digit2':
+      switchWeapon(1);
+      break;
+    case 'Digit3':
+      switchWeapon(2);
+      break;
+    case 'Escape':  // <- Cette partie gère la pause
+      // Ajoute cette condition ici
+      if (!isMultiplayer) {
+        controls.unlock();
+      }
+      break;
+  }
+}
+
 
         function onKeyUp(event) {
             switch (event.code) {
