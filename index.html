@@ -377,7 +377,6 @@
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-
         let peer = null;
         let conn = null;
         let isMultiplayer = false;
@@ -1288,7 +1287,7 @@
             animateImpact();
         }
 
-        function onKeyDown(event) {
+function onKeyDown(event) {
   switch (event.code) {
     case 'KeyW':
     case 'KeyZ':
@@ -1326,14 +1325,15 @@
     case 'Digit3':
       switchWeapon(2);
       break;
-    case 'Escape':  // <- Cette partie gère la pause
-      // Ajoute cette condition ici
+    case 'Escape':  // Gestion de pause
       if (!isMultiplayer) {
         controls.unlock();
       }
+      // Pas de pause possible si multijoueur
       break;
   }
 }
+
 
 
         function onKeyUp(event) {
