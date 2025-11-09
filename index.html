@@ -300,7 +300,6 @@
             <button onclick="startHosting()">Heberger une Partie</button>
             <button onclick="showJoinForm()" class="secondary">Rejoindre une Partie</button>
             <button onclick="playOffline()">Jouer Solo (IA)</button>
-            <button onclick="quickJoin()" class="secondary">Game Rapide</button>
         </div>
 
         <div id="hosting-info" style="display:none;">
@@ -455,55 +454,7 @@
                     sendToOpponent({ type: 'username', username: myUsername });
                 }, 1000);
             });
-            window.quickJoin = function() {
-  const QUICK_GAME_ID = "FPS_QUICK_ROOM";
-  const myUsername = document.getElementById("username-input").value.trim() || "Joueur";
-
-  document.getElementById("mode-select").style.display = "none";
-  document.getElementById("connection-status").textContent = "Connexion rapide...";
-
-  peer = new Peer(QUICK_GAME_ID, {
-    host: "peerjs.com",
-    port: 443,
-    path: '/',
-    secure: true,
-  });
-
-  peer.on("connection", (connIncoming) => {
-    conn = connIncoming;
-    setupConnection(conn);
-    isHost = true;
-    isMultiplayer = true;
-    document.getElementById("connection-modal").classList.add("hidden");
-    document.getElementById("game-mode").textContent = "Rapide (Hôte)";
-    initGame();
-    sendToOpponent({ type: "username", username: myUsername });
-  });
-
-  peer.on("open", (id) => {
-    if (id === QUICK_GAME_ID) {
-      document.getElementById("connection-status").textContent = "En attente d'un joueur...";
-    } else {
-      conn = peer.connect(QUICK_GAME_ID);
-      conn.on("open", () => {
-        isHost = false;
-        isMultiplayer = true;
-        document.getElementById("connection-modal").classList.add("hidden");
-        document.getElementById("game-mode").textContent = "Rapide (Invité)";
-        initGame();
-        sendToOpponent({ type: "username", username: myUsername });
-      });
-      conn.on("error", () => {
-        document.getElementById("connection-status").textContent = "Connexion échouée. L'hôte n'est pas disponible.";
-      });
-    }
-  });
-
-  peer.on("error", (err) => {
-    console.error("PeerJS error:", err);
-    document.getElementById("connection-status").textContent = "Erreur PeerJS : " + err;
-  });
-};
+            
 
             peer.on('error', (err) => {
                 clearTimeout(timeoutId);
@@ -1950,3 +1901,4 @@
     </script>
 </body>
 </html>
+
