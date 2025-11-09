@@ -1325,14 +1325,16 @@ function onKeyDown(event) {
     case 'Digit3':
       switchWeapon(2);
       break;
-    case 'Escape':  // Gestion de pause
+    case 'Escape':
+      // Bloquer complètement la pause en multijoueur
       if (!isMultiplayer) {
         controls.unlock();
       }
-      // Pas de pause possible si multijoueur
+      // Ne rien faire si multijoueur
       break;
   }
 }
+
 
 
 
@@ -1356,6 +1358,10 @@ function onKeyDown(event) {
                 case 'ArrowRight':
                     moveRight = false;
                     break;
+                case 'Escape':
+                    if (!isMultiplayer) {
+                        controls.unlock(); // pause possible en solo
+                    }
             }
         }
 
@@ -1597,165 +1603,170 @@ function onKeyDown(event) {
         }
 
         function updateBullets(delta) {
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                if (!bullets[i]) continue;
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    if (!bullets[i]) continue;
 
-                if (checkBulletCollision(bullets[i], delta)) {
-                    scene.remove(bullets[i]);
-                    bullets[i].geometry.dispose();
-                    bullets[i].material.dispose();
-                    bullets.splice(i, 1);
-                    continue;
-                }
+    if (checkBulletCollision(bullets[i], delta)) {
+      scene.remove(bullets[i]);
+      bullets[i].geometry.dispose();
+      bullets[i].material.dispose();
+      bullets.splice(i, 1);
+      continue;
+    }
 
-                bullets[i].position.add(bullets[i].velocity.clone().multiplyScalar(delta));
-                
-                let hitTarget = false;
-                
-                if (!isMultiplayer && !bullets[i].isMultiplayerBullet) {
-                    for (let j = enemies.length - 1; j >= 0; j--) {
-                        const enemy = enemies[j];
-                        const distToEnemy = bullets[i].position.distanceTo(enemy.position);
-                        
-                        if (distToEnemy < 5) {
-                            for (let part of enemy.children) {
-                                if (!part.geometry) continue;
-                                
-                                const partWorldPos = new THREE.Vector3();
-                                part.getWorldPosition(partWorldPos);
-                                const distToPart = bullets[i].position.distanceTo(partWorldPos);
-                                
-                                if (distToPart < 3) {
-                                    const isHeadshot = part.userData.hitbox === 'head';
-                                    let damage = bullets[i].damage;
-                                    let isCritical = false;
-                                    
-                                    if (isHeadshot) {
-                                        if (bullets[i].weaponType === 2 && SNIPER_HEADSHOT_KILL) {
-                                            damage = enemy.health;
-                                            isCritical = true;
-                                        } else {
-                                            damage *= HEADSHOT_MULTIPLIER;
-                                        }
-                                    }
-                                    
-                                    enemy.health -= damage;
-                                    playSound('hit');
-                                    showDamageNumber(damage, partWorldPos, isHeadshot, isCritical);
-                                    
-                                    part.material.color.setHex(0xffffff);
-                                    setTimeout(() => {
-                                        if (part && part.material) {
-                                            part.material.color.setHex(isHeadshot ? 0xcc0000 : 0xff0000);
-                                        }
-                                    }, 100);
+    bullets[i].position.add(bullets[i].velocity.clone().multiplyScalar(delta));
+    let hitTarget = false;
 
-                                    if (enemy.health <= 0) {
-                                        scene.remove(enemy);
-                                        enemies.splice(j, 1);
-                                        updateScore(isHeadshot ? 200 : 100);
-                                        updateEnemyCount();
-
-                                        if (enemies.length < 3) {
-                                            setTimeout(() => createEnemies(), 3000);
-                                        }
-                                    }
-                                    
-                                    hitTarget = true;
-                                    break;
-                                }
-                            }
-                            
-                            if (hitTarget) break;
-                        }
-                    }
+    // Vérification collision ennemis
+    if (!isMultiplayer && !bullets[i].isMultiplayerBullet) {
+      for (let j = enemies.length - 1; j >= 0; j--) {
+        const enemy = enemies[j];
+        
+        // Hitbox globale de l'ennemi (corps entier)
+        const enemyBox = new THREE.Box3().setFromObject(enemy);
+        const bulletPoint = new THREE.Vector3().copy(bullets[i].position);
+        
+        if (enemyBox.containsPoint(bulletPoint)) {
+          // Vérifier si c'est la tête ou le corps
+          let isHeadshot = false;
+          let damage = bullets[i].damage;
+          
+          for (let part of enemy.children) {
+            if (!part.geometry) continue;
+            
+            const partWorldPos = new THREE.Vector3();
+            part.getWorldPosition(partWorldPos);
+            const distToPart = bullets[i].position.distanceTo(partWorldPos);
+            
+            if (distToPart < 3) {
+              if (part.userData.hitbox === "head") {
+                isHeadshot = true;
+                if (bullets[i].weaponType === 2 && SNIPER_HEADSHOT_KILL) {
+                  damage = enemy.health; // One shot kill
+                } else {
+                  damage *= HEADSHOT_MULTIPLIER;
                 }
-                
-                if (isMultiplayer && otherPlayers['opponent'] && !bullets[i].isMultiplayerBullet) {
-                    const player = otherPlayers['opponent'];
-                    const distToPlayer = bullets[i].position.distanceTo(player.position);
-                    
-                    if (distToPlayer < 5) {
-                        for (let part of player.children) {
-                            if (!part.geometry || part.type === 'Sprite') continue;
-                            
-                            const partWorldPos = new THREE.Vector3();
-                            part.getWorldPosition(partWorldPos);
-                            const distToPart = bullets[i].position.distanceTo(partWorldPos);
-                            
-                            if (distToPart < 3) {
-                                const isHeadshot = part.userData.hitbox === 'head';
-                                let damage = bullets[i].damage;
-                                
-                                if (isHeadshot) {
-                                    if (bullets[i].weaponType === 2 && SNIPER_HEADSHOT_KILL) {
-                                        damage = 100;
-                                    } else {
-                                        damage *= HEADSHOT_MULTIPLIER;
-                                    }
-                                }
-                                
-                                playSound('hit');
-                                showDamageNumber(damage, partWorldPos, isHeadshot);
-                                
-                                sendToOpponent({
-                                    type: 'hit',
-                                    targetId: 'me',
-                                    damage: damage
-                                });
-                                
-                                hitTarget = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                if (hitTarget) {
-                    scene.remove(bullets[i]);
-                    bullets[i].geometry.dispose();
-                    bullets[i].material.dispose();
-                    bullets.splice(i, 1);
-                    continue;
-                }
-                
-                if (bullets[i] && bullets[i].position.length() > 500) {
-                    scene.remove(bullets[i]);
-                    bullets[i].geometry.dispose();
-                    bullets[i].material.dispose();
-                    bullets.splice(i, 1);
-                }
+              }
+              break;
             }
-
-            for (let i = enemyBullets.length - 1; i >= 0; i--) {
-                if (checkBulletCollision(enemyBullets[i], delta)) {
-                    scene.remove(enemyBullets[i]);
-                    enemyBullets[i].geometry.dispose();
-                    enemyBullets[i].material.dispose();
-                    enemyBullets.splice(i, 1);
-                    continue;
+          }
+          
+          enemy.health -= damage;
+          playSound('hit');
+          showDamageNumber(damage, bulletPoint, isHeadshot, false);
+          
+          // Flash rouge sur l'ennemi
+          enemy.children.forEach(part => {
+            if (part.material) {
+              part.material.color.setHex(0xffffff);
+              setTimeout(() => {
+                if (part && part.material) {
+                  part.material.color.setHex(isHeadshot ? 0xcc0000 : 0xff0000);
                 }
-
-                enemyBullets[i].position.add(enemyBullets[i].velocity.clone().multiplyScalar(delta));
-                
-                const distanceToPlayer = enemyBullets[i].position.distanceTo(controls.object.position);
-                if (distanceToPlayer < 4) {
-                    takeDamage(10);
-                    scene.remove(enemyBullets[i]);
-                    enemyBullets[i].geometry.dispose();
-                    enemyBullets[i].material.dispose();
-                    enemyBullets.splice(i, 1);
-                    continue;
-                }
-                
-                if (enemyBullets[i].position.length() > 500) {
-                    scene.remove(enemyBullets[i]);
-                    enemyBullets[i].geometry.dispose();
-                    enemyBullets[i].material.dispose();
-                    enemyBullets.splice(i, 1);
-                }
+              }, 100);
             }
+          });
+          
+          if (enemy.health <= 0) {
+            scene.remove(enemy);
+            enemies.splice(j, 1);
+            updateScore(isHeadshot ? 200 : 100);
+            updateEnemyCount();
+            if (enemies.length < 3) {
+              setTimeout(createEnemies, 3000);
+            }
+          }
+          
+          hitTarget = true;
+          break;
         }
+      }
+    }
+
+    // Vérification collision joueur adverse en multijoueur
+    if (isMultiplayer && otherPlayers['opponent'] && !bullets[i].isMultiplayerBullet) {
+      const player = otherPlayers['opponent'];
+      const playerBox = new THREE.Box3().setFromObject(player);
+      const bulletPoint = new THREE.Vector3().copy(bullets[i].position);
+      
+      if (playerBox.containsPoint(bulletPoint)) {
+        let isHeadshot = false;
+        let damage = bullets[i].damage;
+        
+        for (let part of player.children) {
+          if (!part.geometry || part.type === 'Sprite') continue;
+          
+          const partWorldPos = new THREE.Vector3();
+          part.getWorldPosition(partWorldPos);
+          const distToPart = bullets[i].position.distanceTo(partWorldPos);
+          
+          if (distToPart < 3) {
+            if (part.userData.hitbox === "head") {
+              isHeadshot = true;
+              if (bullets[i].weaponType === 2 && SNIPER_HEADSHOT_KILL) {
+                damage = 100;
+              } else {
+                damage *= HEADSHOT_MULTIPLIER;
+              }
+            }
+            break;
+          }
+        }
+        
+        playSound('hit');
+        showDamageNumber(damage, bulletPoint, isHeadshot);
+        sendToOpponent({type: 'hit', targetId: 'me', damage: damage});
+        hitTarget = true;
+      }
+    }
+
+    if (hitTarget) {
+      scene.remove(bullets[i]);
+      bullets[i].geometry.dispose();
+      bullets[i].material.dispose();
+      bullets.splice(i, 1);
+      continue;
+    }
+
+    if (bullets[i] && bullets[i].position.length() > 500) {
+      scene.remove(bullets[i]);
+      bullets[i].geometry.dispose();
+      bullets[i].material.dispose();
+      bullets.splice(i, 1);
+    }
+  }
+
+  // Suite avec enemyBullets...
+  for (let i = enemyBullets.length - 1; i >= 0; i--) {
+    if (checkBulletCollision(enemyBullets[i], delta)) {
+      scene.remove(enemyBullets[i]);
+      enemyBullets[i].geometry.dispose();
+      enemyBullets[i].material.dispose();
+      enemyBullets.splice(i, 1);
+      continue;
+    }
+
+    enemyBullets[i].position.add(enemyBullets[i].velocity.clone().multiplyScalar(delta));
+    const distanceToPlayer = enemyBullets[i].position.distanceTo(controls.object.position);
+
+    if (distanceToPlayer < 4) {
+      takeDamage(10);
+      scene.remove(enemyBullets[i]);
+      enemyBullets[i].geometry.dispose();
+      enemyBullets[i].material.dispose();
+      enemyBullets.splice(i, 1);
+      continue;
+    }
+
+    if (enemyBullets[i].position.length() > 500) {
+      scene.remove(enemyBullets[i]);
+      enemyBullets[i].geometry.dispose();
+      enemyBullets[i].material.dispose();
+      enemyBullets.splice(i, 1);
+    }
+  }
+}
+
 
         function takeDamage(amount) {
             health -= amount;
